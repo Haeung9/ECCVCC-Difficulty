@@ -53,7 +53,7 @@ class LDPC:
             col_order = rng.permutation(self.block_length)
             Hperm = H0[:, col_order]
             self.H = np.concatenate([self.H, Hperm], axis=0)
-
+        self.generateQ()
         return True
     
     def generateQ(self) -> bool:
@@ -68,13 +68,20 @@ class LDPC:
         return True
     
     def isCodeword(self):
-        syndrome = np.matmul(self.H, self.output_word.reshape(self.block_length,1)) % 2
-        if (syndrome==0).all():
-            return True
-        else:
-            return False
+        # syndrome = np.matmul(self.H, self.output_word.reshape(self.block_length,1)) % 2
+        # if (syndrome==0).all():
+        #     return True
+        # else:
+        #     return False
+        for i in range(0, self.redundancy):
+            sum = 0
+            for j in range(0, self.row_deg):
+                sum = sum + self.output_word[self.col_in_row[j][i]]
+            if sum %2 == 1: # check if outputWord is codeword
+                return False
+        return True
         
-    def LDPC_Decoding(self, verbose = False, useOriginal = False) -> bool:
+    def LDPC_Decoding(self, verbose = False, useOriginal = True) -> bool:
         if useOriginal:
             return self.LDPC_Decoding_Original(verbose=verbose)
         else:
