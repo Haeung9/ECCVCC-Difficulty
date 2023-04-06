@@ -180,12 +180,10 @@ class LDPC:
                 else:
                     self.output_word[i] = 0
             logging.debug("outputword at %d-th iteration = " + np.array2string(self.output_word), index)
-            if self.isCodeword():
-                self.Iter = index
-                logging.info("Decoding finished at %d-th iteration", index)
-                return True
-            logging.debug("Iteration %d ends (%f s).", index, time.time()-iterstart)
-        logging.info("Decoding fails: maximum iteration reached")
+        if self.isCodeword():
+            logging.info("Decoding success")
+            return True
+        logging.info("Decoder reached maximum iteration")
         return False
     
     # original implementation in cpp; iterate all C2V, out of row_deg bound
@@ -253,11 +251,11 @@ class LDPC:
                 else:
                     self.output_word[i] = 0
             logging.debug("outputword at %d-th iteration = " + np.array2string(self.output_word), index)
-        #     if self.isCodeword():
-        #         self.Iter = index
-        #         logging.info("Decoding finished at %d-th iteration", index)
-        #         return True
-        #     logging.debug("Iteration %d ends (%f s).", index, time.time()-iterstart)
+            # if self.isCodeword():
+            #     self.Iter = index
+            #     logging.info("Decoding finished at %d-th iteration", index)
+            #     return True
+            # logging.debug("Iteration %d ends (%f s).", index, time.time()-iterstart)
         if self.isCodeword():
             logging.info("Decoding success")
             return True
