@@ -70,11 +70,12 @@ class TestLDPC(unittest.TestCase):
         testVector[6,:] = np.array([0, 0, 0, 0, 0, 1, 0, 0])
         testVector[7,:] = np.array([0, 0, 0, 0, 0, 0, 1, 0])
         testVector[8,:] = np.array([0, 0, 0, 0, 0, 0, 0, 1])
-
-        for i in range(np.size(testVector, axis=0)):
-            instance.input_word = testVector[i,:]
+   
+        for i in range(9):
+            instance.input_word = np.reshape(testVector[i,:], newshape=(instance.block_length)).copy()
             decodingFlag = instance.LDPC_Decoding(useOriginal=True)
             print("For test input: ", instance.input_word, ", output word: ", instance.output_word,", ", decodingFlag)
+
             
 
 

@@ -1,12 +1,13 @@
 import numpy as np
 import os
 import time
+import logging
 from typing import Tuple
 
 from . import ldpc
 from . import parameters
 
-def runSingleSimulation(codeParams: parameters.codeParameters, word = np.zeros(shape=(32), dtype=int), useWordInput = False, verbose = False, useOriginal = False) -> Tuple[bool, bool, int]:
+def runSingleSimulation(codeParams: parameters.codeParameters, word = np.zeros(shape=(32), dtype=int), useWordInput = False, useOriginal = False) -> Tuple[bool, bool, int]:
     blockLength = codeParams.block_length
     rowDegree = codeParams.row_deg
     colDegree = codeParams.col_deg
@@ -17,20 +18,20 @@ def runSingleSimulation(codeParams: parameters.codeParameters, word = np.zeros(s
     instance = ldpc.LDPC(blockLength, rowDegree, colDegree)
     if not instance.Make_Gallager_Parity_Check_Matrix(seed):
         raise Exception("Cannot generate PCM")
-    if verbose: print("PCM generated.", instance.H)
+    logging.debug("PCM generated." + np.array2string(instance.H))
     if not instance.generateQ():
         raise Exception("Cannot generate sparse of PCM")
-    if verbose: print("Sparse generated. \n", instance.row_in_col, "\n", instance.col_in_row)
+    logging.debug("Sparse generated. \n", instance.row_in_col, "\n", instance.col_in_row)
     
     instance.input_word = randomWord
-    if verbose: print("Decoding ...")
-    decodingSuccess = instance.LDPC_Decoding(verbose=verbose, useOriginal=useOriginal)
+    logging.debug("Decoding ...")
+    decodingSuccess = instance.LDPC_Decoding(useOriginal=useOriginal)
     sol = False
-    if verbose: print("Decoding ends")
+    logging.debug("Decoding ends")
     if decodingSuccess:
         (weightCheckPass, foundHammingWeight) = weightCheck(instance.output_word, codeParams)
         if weightCheckPass:
-            if verbose: print("Success!")
+            logging.info("Success!")
             sol = True
     else:
         foundHammingWeight = 0
@@ -39,15 +40,14 @@ def runSingleSimulation(codeParams: parameters.codeParameters, word = np.zeros(s
     snapshotOutputWord = instance.output_word.copy()
     snapshotSol = sol
     snapshotDS = decodingSuccess
-    snapshotWeigth = foundHammingWeight
-    if verbose:
-        print("PCM: \n", snapshotPCM)
-        print("input word: ", snapshotInputWord)
-        print("output word: ", snapshotOutputWord)
-        print("decision condition: ", codeParams.hammingWeigthLow, " <= HW <= ", codeParams.hammingWeigthHigh)
-        print("solution found: ", snapshotSol)
-        print("decoder flag: ", snapshotDS)
-        print("Hamming weight of found codeword: ", foundHammingWeight)
+    snapshotWeight = foundHammingWeight
+    logging.info("PCM: \n" + np.array2string(snapshotPCM))
+    logging.info("input word: " + np.array2string(snapshotInputWord))
+    logging.info("output word: " + np.array2string(snapshotOutputWord))
+    logging.info("decision condition: " + str(codeParams.hammingWeigthLow) + " <= HW <= " + str(codeParams.hammingWeigthHigh))
+    logging.info("solution found: " + str(snapshotSol))
+    logging.info("decoder flag: " + str(snapshotDS))
+    logging.info("Hamming weight of found codeword: %d",foundHammingWeight)
     return (sol, decodingSuccess, foundHammingWeight)
 
 def weightCheck(word: np.ndarray, codeParams: parameters.codeParameters) -> Tuple[bool, int]:
@@ -58,19 +58,19 @@ def weightCheck(word: np.ndarray, codeParams: parameters.codeParameters) -> Tupl
     else:
         return [False, hammingWeigth]
     
-def runMonteCarlo(codeParams: parameters.codeParameters, numSim = 100, saveResult = True, dir = os.getcwd(), verbose = False, printStamp = False, useOriginal = False) -> Tuple[int, int]:
+def runMonteCarlo(codeParams: parameters.codeParameters, numSim = 100, saveResult = True, dir = os.getcwd(), printStamp = False, useOriginal = False) -> Tuple[int, int]:
     solutionFound = 0
     decoderSuccess = 0
     hammingWeigthHistogram = np.zeros(shape=(codeParams.block_length + 1), dtype=int)  
     startTime = time.time()
     for cnt_sim in range(numSim):
-        (sol, ds, hw) = runSingleSimulation(codeParams, verbose = verbose, useOriginal = useOriginal)
+        (sol, ds, hw) = runSingleSimulation(codeParams, useOriginal = useOriginal)
         if ds:
             decoderSuccess += 1
             hammingWeigthHistogram[hw] += 1
         if sol:
             solutionFound += 1
-        if printStamp and (cnt_sim%20000 == 0):
+        if printStamp and (cnt_sim%2000 == 0):
             print(cnt_sim, "th simulation...(", time.time() - startTime, "s)")
     # solutionRate = float(solutionFound)/float(numSim)
     # decodingRate = float(decoderSuccess)/float(numSim)

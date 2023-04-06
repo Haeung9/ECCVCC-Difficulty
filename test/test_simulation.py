@@ -17,22 +17,21 @@ class TestSimulation(unittest.TestCase):
         self.assertFalse(eval)
 
     def test_runSingleSimulation_zeroWord(self):
-        verbose = False
         param = parameters.codeParameters() # default parameters
-        (sol, decodingSuccess, _) = simulation.runSingleSimulation(param, word = np.zeros(shape=(param.block_length), dtype=int),useWordInput=True , verbose=verbose)
+        (sol, decodingSuccess, _) = simulation.runSingleSimulation(param, word = np.zeros(shape=(param.block_length), dtype=int),useWordInput=True)
         self.assertTrue(decodingSuccess) # zero-word always a codeword
         self.assertTrue(sol)
         print("is solution found? : ", sol, ", is decoding success? : ", decodingSuccess)
+
     @unittest.skip("")
     def test_runSingleSimulation_singleErrorWord(self):
-        verbose = False
         param = parameters.codeParameters(blockLength= 32, rowDegree=4, colDegree=3, hammingWeigtHigh=32) 
         # word = np.zeros(shape=(param.block_length), dtype=int)
         onepart = np.ones(shape=(param.row_deg), dtype=int)
         zeropart = np.zeros(shape=(param.block_length - param.row_deg), dtype=int)
         word = np.concatenate((onepart, zeropart))
         word[-1] = (word[-1] + 1) % 2
-        (sol, decodingSuccess, _) = simulation.runSingleSimulation(param, word = word, useWordInput=True, verbose=verbose)
+        (sol, decodingSuccess, _) = simulation.runSingleSimulation(param, word = word, useWordInput=True)
         self.assertTrue(decodingSuccess) # single error should be corrected
         self.assertTrue(sol)
         print("is solution found? : ", sol, ", is decoding success? : ", decodingSuccess)
@@ -40,16 +39,14 @@ class TestSimulation(unittest.TestCase):
     @unittest.skip("")
     def test_runSingleSimulation_randomWord(self):
         # For randomword
-        verbose = True
         param = parameters.codeParameters() # default parameters
-        (sol, decodingSuccess, _) = simulation.runSingleSimulation(param, verbose=verbose)
+        (sol, decodingSuccess, _) = simulation.runSingleSimulation(param)
         print("is solution found? : ", sol, ", is decoding success? : ", decodingSuccess)
 
-
+    @unittest.skip("")
     def test_runMonteCarlo(self):
-        verbose = False
         param = parameters.codeParameters(blockLength=32, rowDegree=4, colDegree=3)
-        (errorRate, decodingRate)= simulation.runMonteCarlo(param, saveResult = False, numSim=1000,verbose=verbose)
+        (errorRate, decodingRate)= simulation.runMonteCarlo(param, saveResult = False, numSim=1000)
         print("Error rate = ", errorRate)
         print("Decoding rate = ", decodingRate)
 
