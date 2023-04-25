@@ -17,14 +17,17 @@ class LDPC:
         self.code_rate = float(self.col_deg) / float(self.row_deg)
         self.seed = seed; 
         # self.q = 0
-        self.lastnonzerow = 0; self.Iter = 0
-        self.LRft = np.zeros(shape=(self.block_length), dtype=float) # prior LR
-        self.LRpt = np.zeros(shape=(self.block_length), dtype=float) # posterior LR
-        self.LRrtl = np.zeros(shape=(self.block_length, self.redundancy), dtype=float) # C2V message
-        self.LRqtl = np.zeros(shape=(self.block_length, self.redundancy), dtype=float) # V2C message
+        self.parityMatrixInitialize()
+        self.decodingInitialize()
         self.input_word = np.zeros(shape=(self.block_length), dtype=int) 
         self.output_word = np.zeros(shape=(self.block_length), dtype=int) 
     
+    def parityMatrixInitialize(self):
+        self.H = np.zeros(shape=(self.redundancy, self.block_length), dtype=int )
+        self.H_ORI = None; self.H_SYS = None; self.H_NEW = None; self.G_SYS = None
+        self.row_in_col = np.zeros(shape=(self.col_deg, self.block_length), dtype=int) # row_in_col : col_deg * block_lenegth
+        self.col_in_row = np.zeros(shape=(self.row_deg, self.redundancy), dtype=int) # col_in_row : row_deg * redundancy
+
     def decodingInitialize(self):
         logging.debug("Initialize decoder parameters")
         self.LRft = np.zeros(shape=(self.block_length), dtype=float) # prior LR
@@ -39,12 +42,6 @@ class LDPC:
         rowDegreeCheck = (self.block_length % self.row_deg == 0)
         return (rateCheck, rowDegreeCheck)
     
-    def parityMatrixInitialize(self):
-        self.H = np.zeros(shape=(self.redundancy, self.block_length), dtype=int )
-        self.H_ORI = None; self.H_SYS = None; self.H_NEW = None; self.G_SYS = None
-        self.row_in_col = np.zeros(shape=(self.col_deg, self.block_length), dtype=int) # row_in_col : col_deg * block_lenegth
-        self.col_in_row = np.zeros(shape=(self.row_deg, self.redundancy), dtype=int) # col_in_row : row_deg * redundancy
-
     def Make_Gallager_Parity_Check_Matrix(self, seed: int) -> bool:
         self.parityMatrixInitialize()
         self.seed = seed
@@ -92,6 +89,7 @@ class LDPC:
         return True
         
     def LDPC_Decoding(self, useOriginal = True) -> bool:
+        self.generateQ()
         self.decodingInitialize()
         if useOriginal:
             return self.LDPC_Decoding_Original()
@@ -256,8 +254,8 @@ class LDPC:
             #     logging.info("Decoding finished at %d-th iteration", index)
             #     return True
             # logging.debug("Iteration %d ends (%f s).", index, time.time()-iterstart)
-        if self.isCodeword():
-            logging.info("Decoding success")
-            return True
+            if self.isCodeword():
+                logging.info("Decoding success")
+                return True
         logging.info("Decoder reached maximum iteration")
         return False
