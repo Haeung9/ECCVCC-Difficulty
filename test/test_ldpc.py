@@ -39,6 +39,7 @@ class TestLDPC(unittest.TestCase):
         instance = ldpc.LDPC(blockLength=8)
         instance.block_length = 8; instance.redundancy = 6; instance.message_length = 2
         instance.row_deg = 4; instance.col_deg = 3
+        instance.parityMatrixInitialize()
         oneMap = np.zeros(shape=(2, 24), dtype=int)
         oneMap[0,0] = 0; oneMap[1,0] = 0; oneMap[0,1] = 0; oneMap[1,1] = 1
         oneMap[0,2] = 0; oneMap[1,2] = 2; oneMap[0,3] = 0; oneMap[1,3] = 3 # row 0
