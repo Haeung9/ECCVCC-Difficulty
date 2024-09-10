@@ -4,28 +4,29 @@ import time
 import logging
 from typing import Tuple
 
-from . import ldpc
+from . import syndromeInputLdpc
 from . import parameters
 
-def runSingleSimulation(codeParams: parameters.codeParameters, word = np.zeros(shape=(32), dtype=int), useWordInput = False, useOriginal = False) -> Tuple[bool, bool, int]:
+def runSingleSimulation(codeParams: parameters.codeParameters, word = np.zeros(shape=(32), dtype=int), useWordInput = False) -> Tuple[bool, bool, int]:
     blockLength = codeParams.block_length
+    syndromeLength = codeParams.redundancy
     rowDegree = codeParams.row_deg
     colDegree = codeParams.col_deg
-    randomWord = np.random.randint(np.zeros(shape=(blockLength),dtype=int),2*np.ones(shape=(blockLength), dtype=int))
+    randomWord = np.random.randint(np.zeros(shape=(syndromeLength),dtype=int),2*np.ones(shape=(syndromeLength), dtype=int))
     if useWordInput:
         randomWord = word
     seed = np.random.randint(1000) + int(time.time())
-    instance = ldpc.LDPC(blockLength, rowDegree, colDegree)
+    instance = syndromeInputLdpc.SILDPC(blockLength, rowDegree, colDegree)
     if not instance.Make_Gallager_Parity_Check_Matrix(seed):
         raise Exception("Cannot generate PCM")
     logging.debug("PCM generated." + np.array2string(instance.H))
     if not instance.generateQ():
         raise Exception("Cannot generate sparse of PCM")
-    logging.debug("Sparse generated. \n", instance.row_in_col, "\n", instance.col_in_row)
+    logging.debug("Sparse generated. \n" + np.array2string(instance.row_in_col) + "\n" + np.array2string(instance.col_in_row))
     
-    instance.input_word = randomWord
+    instance.syndrome = randomWord
     logging.debug("Decoding ...")
-    decodingSuccess = instance.LDPC_Decoding(useOriginal=useOriginal)
+    decodingSuccess = instance.LDPC_Decoding()
     sol = False
     logging.debug("Decoding ends")
     if decodingSuccess:
@@ -58,13 +59,13 @@ def weightCheck(word: np.ndarray, codeParams: parameters.codeParameters) -> Tupl
     else:
         return [False, hammingWeigth]
     
-def runMonteCarlo(codeParams: parameters.codeParameters, numSim = 100, saveResult = True, dir = os.getcwd(), printStamp = False, useOriginal = False) -> Tuple[int, int]:
+def runMonteCarlo(codeParams: parameters.codeParameters, numSim = 100, saveResult = True, dir = os.getcwd(), printStamp = False) -> Tuple[int, int]:
     solutionFound = 0
     decoderSuccess = 0
     hammingWeigthHistogram = np.zeros(shape=(codeParams.block_length + 1), dtype=int)  
     startTime = time.time()
     for cnt_sim in range(numSim):
-        (sol, ds, hw) = runSingleSimulation(codeParams, useOriginal = useOriginal)
+        (sol, ds, hw) = runSingleSimulation(codeParams)
         if ds:
             decoderSuccess += 1
             hammingWeigthHistogram[hw] += 1

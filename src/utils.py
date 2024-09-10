@@ -1,10 +1,12 @@
 import numpy as np
 import math
 from typing import Tuple
+import logging
 from . import constants
 
 def computeBinaryRREF(matrix: np.ndarray) -> Tuple[np.ndarray, np.ndarray, int]:
     if matrix.dtype==int and ((matrix==0)|(matrix==1)).all():
+        logging.info("original matrix:\n"+ np.array2string(matrix))
         (redundancy, block_length) = matrix.shape
         lastnonzerow = redundancy
         swapmapRow = np.arange(0,redundancy)
@@ -31,6 +33,12 @@ def computeBinaryRREF(matrix: np.ndarray) -> Tuple[np.ndarray, np.ndarray, int]:
                     matrix[row, :] =  matrix[row, :]^matrix[col,:] # gen RREF by backward elimination
     else:
         print("computeBinaryRREF: input is not a binary matrix.")
+
+    logging.info("RREF = \n" + np.array2string(matrix))
+    logging.info("swapmapRow = " + np.array2string(swapmapRow))
+    logging.info("swapmapCol = " + np.array2string(swapmapCol))
+    logging.info("lastnonzerow = " + str(lastnonzerow))
+    logging.info("dependent rows (computeBinaryRREF) = " + np.array2string(swapmapRow[lastnonzerow:]))
     return (swapmapRow, swapmapCol, lastnonzerow)
    
 def FindGoodRowCol(matrix: np.ndarray, pivot: int) -> Tuple[int|None, int|None, bool]:

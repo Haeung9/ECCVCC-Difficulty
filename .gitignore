@@ -13,3 +13,5 @@ jupyter/
 notes/
 
 log/
+
+*.csv

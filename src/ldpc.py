@@ -100,6 +100,7 @@ class LDPC:
     def Make_Parity_Check_Matrix_Sys(self) -> bool:
         self.H_SYS = self.H.copy()
         (swapmapRow, swapmapCol, lastnonzerow) = utils.computeBinaryRREF(self.H_SYS)
+        self.dependentParityRows = swapmapRow[lastnonzerow:]
 
         self.H_SYS = self.H_SYS[0:lastnonzerow, :]; swapmapRow = swapmapRow[0:lastnonzerow] # drop zero-rows
         self.H_SYS = np.concatenate([ self.H_SYS[:,lastnonzerow:], self.H_SYS[:,0:lastnonzerow] ], axis=1);  # swap eye part and remainders 
@@ -107,6 +108,7 @@ class LDPC:
 
         parity_length = self.block_length - lastnonzerow
         syndrome_length = lastnonzerow
+        logging.info("dependent rows: " + np.array2string(self.dependentParityRows))
         self.G_SYS = np.concatenate([np.eye(parity_length, dtype=int), self.H_SYS[:,0:parity_length].transpose()],axis=1)
         return True
     

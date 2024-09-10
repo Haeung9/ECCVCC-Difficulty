@@ -2,6 +2,7 @@ import logging
 import math
 import time
 import numpy as np
+import copy
 
 from . import constants, utils, ldpc
 
@@ -10,16 +11,21 @@ class SILDPC(ldpc.LDPC):
         super().__init__(blockLength, rowDegree, colDegree, seed)
         self.syndrome = np.zeros(shape=(self.redundancy), dtype=int)
     def LDPC_Decoding(self) -> bool:
+        self.Make_Parity_Check_Matrix_Sys()
         self.generateQ()
         self.decodingInitialize()
+        # matrix = copy.deepcopy(self.H)
+        # (swapmapRow, swapmapCol, lastnonzerow) = utils.computeBinaryRREF(matrix)
+        # self.informativeRows = swapmapRow[:lastnonzerow+1]
         return self.SILDPC_Decoding()
     def isParitySatisfied(self) -> bool:
         for i in range(0, self.redundancy):
-            sum = 0
-            for j in range(0, self.row_deg):
-                sum = sum + self.output_word[self.col_in_row[j][i]]
-            if not sum % 2 == self.syndrome[i]:
-                return False
+            if not np.isin(self.dependentParityRows, i).any():
+                sum = 0
+                for j in range(0, self.row_deg):
+                    sum = sum + self.output_word[self.col_in_row[j][i]]
+                if not sum % 2 == self.syndrome[i]:
+                    return False
         return True
 
     def SILDPC_Decoding(self) -> bool:
@@ -27,7 +33,7 @@ class SILDPC(ldpc.LDPC):
         self.output_word = np.zeros(shape=(self.block_length), dtype=int) # initialized by zero
         if self.isParitySatisfied():
             return True
-        self.LRft = np.ones(shape=(self.block_length), dtype=float)*math.log((1.0 - constants.cross_over_probability)/(constants.cross_over_probability)) # initialized by negative
+        self.LRft = np.ones(shape=(self.block_length), dtype=float)*math.log((1.0 - constants.cross_over_probability)/constants.cross_over_probability)
         self.LRpt = np.zeros(shape=(self.block_length), dtype=float)
 
         logging.debug("prior = " + np.array2string(self.LRft))
@@ -56,18 +62,20 @@ class SILDPC(ldpc.LDPC):
             C2Vstart = time.time()  
             # ######################################## k
             for k in range(self.redundancy):
-                connectedVars = self.col_in_row[:,k] # List of V nodes who are connected with C(k) node
-                for l in range(self.row_deg):
-                    V2CmessageLogSum = 0.0
-                    sign = (self.syndrome[k] * (-2)) + 1
-                    for m in range(self.row_deg):
-                        if not m == l: # log sum of V2C messages from all connected V nodes to C(k), except V2C from V(connectedVars(l))
-                            V2CmessageLogSum += utils.func_f( abs(self.LRqtl.item((connectedVars[m], k))) )
-                            if not self.LRqtl.item((connectedVars[m],k)) > 0.0: # determine the sign: Odd number of negative value -> negative
-                                sign = sign * (-1.0)
-                    magnitude = utils.func_f(V2CmessageLogSum) # exp compensation
+                if not np.isin(self.dependentParityRows, k).any():
+                # if np.isin(self.informativeRows, k).any():
+                    connectedVars = self.col_in_row[:,k] # List of V nodes who are connected with C(k) node
+                    for l in range(self.row_deg):
+                        V2CmessageLogSum = 0.0
+                        sign = (self.syndrome[k] * (-2)) + 1
+                        for m in range(self.row_deg):
+                            if not m == l: # log sum of V2C messages from all connected V nodes to C(k), except V2C from V(connectedVars(l))
+                                V2CmessageLogSum += utils.func_f( abs(self.LRqtl.item((connectedVars[m], k))) )
+                                if not self.LRqtl.item((connectedVars[m],k)) > 0.0: # determine the sign: Odd number of negative value -> negative
+                                    sign = sign * (-1.0)
+                        magnitude = utils.func_f(V2CmessageLogSum) # exp compensation
                     # C2V message from C(k) to V(connectedVars(l)) is the product of V2C messages, except V2C from V(connectedVars(l))
-                    self.LRrtl[connectedVars[l],k] = utils.infinityTest(sign*magnitude)
+                        self.LRrtl[connectedVars[l],k] = utils.infinityTest(sign*magnitude)
             
             # Last iteration get LR (pi)
             # LRpt => L_j^Total, LRft = L_j, LRrtl = L_i->
@@ -94,7 +102,7 @@ class SILDPC(ldpc.LDPC):
             #     return True
             # logging.debug("Iteration %d ends (%f s).", index, time.time()-iterstart)
             if self.isParitySatisfied():
-                logging.info("Decoding success")
+                logging.info("SI Decoding success")
                 return True
         logging.info("Decoder reached maximum iteration")
         return False
